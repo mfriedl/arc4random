@@ -1,4 +1,4 @@
-/*	$OpenBSD: arc4random.c,v 1.23 2012/06/24 18:25:12 matthew Exp $	*/
+/*	$OpenBSD: arc4random.c,v 1.25 2013/10/01 18:34:57 markus Exp $	*/
 
 /*
  * Copyright (c) 1996, David Mazieres <dm@uun.org>
@@ -33,6 +33,7 @@
 #include <sys/sysctl.h>
 #include "thread_private.h"
 
+#define KEYSTREAM_ONLY
 #include "chacha_private.h"
 
 #ifdef __GNUC__
