@@ -33,8 +33,20 @@
 #include <sys/sysctl.h>
 #include "thread_private.h"
 
+#ifdef USE_SALSA
+#include "salsa_private.h"
+#define ECRYPT_ctx salsa_ctx
+#define ECRYPT_keysetup salsa_keysetup
+#define ECRYPT_ivsetup salsa_ivsetup
+#define ECRYPT_encrypt_bytes salsa_encrypt_bytes
+#else
 #define KEYSTREAM_ONLY
 #include "chacha_private.h"
+#define ECRYPT_ctx chacha_ctx
+#define ECRYPT_keysetup chacha_keysetup
+#define ECRYPT_ivsetup chacha_ivsetup
+#define ECRYPT_encrypt_bytes chacha_encrypt_bytes
+#endif
 
 #ifdef __GNUC__
 #define inline __inline
@@ -48,7 +60,7 @@
 #define RSBUFSZ	(16*BLOCKSZ)
 static int rs_initialized;
 static pid_t rs_stir_pid;
-static chacha_ctx rs;		/* chacha context for random keystream */
+static ECRYPT_ctx rs;		/* ECRYPT context for random keystream */
 static u_char rs_buf[RSBUFSZ];	/* keystream blocks */
 static size_t rs_have;		/* valid bytes at end of rs_buf */
 static size_t rs_count;		/* bytes till reseed */
@@ -60,8 +72,8 @@ _rs_init(u_char *buf, size_t n)
 {
 	if (n < KEYSZ + IVSZ)
 		return;
-	chacha_keysetup(&rs, buf, KEYSZ * 8, 0);
-	chacha_ivsetup(&rs, buf + KEYSZ);
+	ECRYPT_keysetup(&rs, buf, KEYSZ * 8, 0);
+	ECRYPT_ivsetup(&rs, buf + KEYSZ);
 }
 
 static void
@@ -110,7 +122,7 @@ _rs_rekey(u_char *dat, size_t datlen)
 	memset(rs_buf, 0,RSBUFSZ);
 #endif
 	/* fill rs_buf with the keystream */
-	chacha_encrypt_bytes(&rs, rs_buf, rs_buf, RSBUFSZ);
+	ECRYPT_encrypt_bytes(&rs, rs_buf, rs_buf, RSBUFSZ);
 	/* mix in optional user provided data */
 	if (dat) {
 		size_t i, m;
